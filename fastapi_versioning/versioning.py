@@ -10,8 +10,8 @@ CallableT = TypeVar("CallableT", bound=Callable[..., Any])
 
 def version(major: int, minor: int = 0, prefix: str = "") -> Callable[[CallableT], CallableT]:
     def decorator(func: CallableT) -> CallableT:
-        func._api_version = (major, minor)
-        func._custom_prefix = prefix
+        func._api_version = (major, minor)  # type: ignore
+        func._custom_prefix = prefix  # type: ignore
         return func
 
     return decorator
@@ -49,9 +49,9 @@ def VersionedFastAPI(
 
     for version, route, custom_prefix in version_routes:
         extended_version = version + (custom_prefix,)
-        version_route_mapping[extended_version].append(route)
+        version_route_mapping[extended_version].append(route)  # type: ignore
 
-    unique_routes = {}
+    unique_routes: Dict[Tuple[str, str], APIRoute] = {}
     versions = sorted(version_route_mapping.keys())
     for version in versions:
         major, minor, custom_prefix = version
@@ -63,12 +63,20 @@ def VersionedFastAPI(
             description=app.description,
             version=semver,
         )
-        for route in version_route_mapping[version]:
-            for method in route.methods:
-                unique_routes[route.path + "|" + method] = route
+        if invert_prefix:
+            for route in version_route_mapping[version]:
+                for method in route.methods:
+                    unique_routes[(prefix, (route.path + "|" + method))] = route
+            matches = list(filter(lambda key:  key[0].startswith(custom_prefix), unique_routes.keys()))
+            for key in matches:
+                versioned_app.router.routes.append(unique_routes[key])
+        else:
+            for route in version_route_mapping[version]:
+                for method in route.methods:
+                    unique_routes[route.path + "|" + method] = route  # type: ignore
+            for route in unique_routes.values():
+                versioned_app.router.routes.append(route)
 
-        for route in unique_routes.values():
-            versioned_app.router.routes.append(route)
         parent_app.mount(prefix, versioned_app)
 
         @parent_app.get(
