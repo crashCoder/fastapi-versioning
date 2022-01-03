@@ -2,5 +2,6 @@
 cd "$( dirname "${BASH_SOURCE[0]}" )"
 cd ..
 
-rm -r dist/
+[ -d "dist" ] && rm -r dist/
+
 python -m build
