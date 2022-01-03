@@ -8,7 +8,9 @@ from starlette.routing import BaseRoute
 CallableT = TypeVar("CallableT", bound=Callable[..., Any])
 
 
-def version(major: int, minor: int = 0, prefix: str = "") -> Callable[[CallableT], CallableT]:
+def version(
+    major: int, minor: int = 0, prefix: str = ""
+) -> Callable[[CallableT], CallableT]:
     def decorator(func: CallableT) -> CallableT:
         func._api_version = (major, minor)  # type: ignore
         func._custom_prefix = prefix  # type: ignore
@@ -18,8 +20,7 @@ def version(major: int, minor: int = 0, prefix: str = "") -> Callable[[CallableT
 
 
 def version_to_route(
-        route: BaseRoute,
-        default_version: Tuple[int, int]
+    route: BaseRoute, default_version: Tuple[int, int]
 ) -> tuple[Union[tuple[int, int], Any], APIRoute, Any]:
     api_route = cast(APIRoute, route)
     version = getattr(api_route.endpoint, "_api_version", default_version)
@@ -28,36 +29,40 @@ def version_to_route(
 
 
 def VersionedFastAPI(
-        app: FastAPI,
-        version_format: str = "{major}.{minor}",
-        version_prefix: str = "/v{major}_{minor}",
-        invert_prefix: bool = False,
-        default_version: Tuple[int, int] = (1, 0),
-        enable_latest: bool = False,
-        **kwargs: Any,
+    app: FastAPI,
+    version_format: str = "{major}.{minor}",
+    version_prefix: str = "/v{major}_{minor}",
+    invert_prefix: bool = False,
+    default_version: Tuple[int, int] = (1, 0),
+    enable_latest: bool = False,
+    **kwargs: Any,
 ) -> FastAPI:
     parent_app = FastAPI(
         title=app.title,
         **kwargs,
     )
-    version_route_mapping: Dict[Tuple[int, int, str], List[APIRoute]] = defaultdict(
-        list
-    )
+    version_route_mapping: Dict[
+        Union[Tuple[int, int, str], Any], List[APIRoute]
+    ] = defaultdict(list)
     version_routes = [
         version_to_route(route, default_version) for route in app.routes
     ]
 
     for version, route, custom_prefix in version_routes:
         extended_version = version + (custom_prefix,)
-        version_route_mapping[extended_version].append(route)  # type: ignore
+        version_route_mapping[extended_version].append(route)
 
     unique_routes: Dict[Tuple[str, str], APIRoute] = {}
     versions = sorted(version_route_mapping.keys())
     for version in versions:
         major, minor, custom_prefix = version
         prefix = version_prefix.format(major=major, minor=minor)
-        prefix = custom_prefix + prefix if invert_prefix else prefix + custom_prefix
-        semver = custom_prefix + version_format.format(major=major, minor=minor)
+        prefix = (
+            custom_prefix + prefix if invert_prefix else prefix + custom_prefix
+        )
+        semver = custom_prefix + version_format.format(
+            major=major, minor=minor
+        )
         versioned_app = FastAPI(
             title=app.title,
             description=app.description,
@@ -66,8 +71,15 @@ def VersionedFastAPI(
         if invert_prefix:
             for route in version_route_mapping[version]:
                 for method in route.methods:
-                    unique_routes[(prefix, (route.path + "|" + method))] = route
-            matches = list(filter(lambda key:  key[0].startswith(custom_prefix), unique_routes.keys()))
+                    unique_routes[
+                        (prefix, (route.path + "|" + method))
+                    ] = route
+            matches = list(
+                filter(
+                    lambda key: key[0].startswith(custom_prefix),
+                    unique_routes.keys(),
+                )
+            )
             for key in matches:
                 versioned_app.router.routes.append(unique_routes[key])
         else:
