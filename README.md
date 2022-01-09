@@ -148,3 +148,53 @@ app = VersionedFastAPI(app,
     ]
 )
 ```
+
+## Add additional prefix before version
+
+It's important to note that when we add a prefix at the beginning of the 
+version, each prefix will be grouped as an application, this because for 
+FastAPI each namespace is a different application. Every route will be 
+generated in the main as a default, but we can still handle the versions 
+independently.
+
+```python
+from fastapi import FastAPI, Request
+from fastapi_versioning import VersionedFastAPI, version
+from starlette.middleware import Middleware
+from starlette.middleware.sessions import SessionMiddleware
+
+app = FastAPI(
+    title='My App',
+    description='Greet uses with a nice message',
+    middleware=[
+        Middleware(SessionMiddleware, secret_key='mysecretkey')
+    ]
+)
+
+@app.get('/greet')
+@version(1, 0, "/custom_prefix")
+def greet(request: Request):
+    request.session['last_version_used'] = 1
+    return 'Hello'
+
+@app.get('/greet')
+@version(2, 0, "/custom_prefix")
+def greet(request: Request):
+    request.session['last_version_used'] = 2
+    return 'Hi'
+
+@app.get('/version')
+def last_version(request: Request):
+    return f'Your last greeting was sent from version {request.session["last_version_used"]}'
+
+app = VersionedFastAPI(app,
+    version_format='{major}',
+    prefix_format='/v{major}',
+    description='Greet users with a nice message',
+    prefix_grouping=True,
+    middleware=[
+        Middleware(SessionMiddleware, secret_key='mysecretkey')
+    ]
+)
+```
+
