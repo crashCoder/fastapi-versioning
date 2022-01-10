@@ -35,7 +35,7 @@ def VersionedFastAPI(
     prefix_grouping: bool = False,
     default_version: Tuple[int, int] = (1, 0),
     enable_latest: bool = False,
-    **kwargs,
+    **kwargs: Any,
 ) -> FastAPI:
     version_route_mapping: Dict[
         Union[Tuple[int, int, str], Any], List[APIRoute]
