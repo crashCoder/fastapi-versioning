@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.routing import APIRoute
 from starlette.routing import BaseRoute
 
-CallableT = TypeVar("CallableT", bound=Callable[..., Any])
+CallableT = TypeVar("CallableT", bound=Callable[..., Any])  # type: ignore
 
 
 def version(
