@@ -11,6 +11,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/DeanWay/fastapi-versioning",
+    package_data={"fastapi_versioning": ["py.typed"]},
     packages=["fastapi_versioning"],
     classifiers=[
         "Programming Language :: Python :: 3.6",
